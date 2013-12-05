@@ -1,5 +1,9 @@
-target/
-project/target/
+target
+
+project/target
+
+.worksheet
+
 .classpath
 
 .cache
