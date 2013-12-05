@@ -61,7 +61,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
 	     //case _ => None
 	  }
       
-      def constructSeriesResult(name:String, cols: Seq[String], points: List[JValue]) = {
+      def constructSeries(name:String, cols: Seq[String], points: List[JValue]) = {
         // convert JArray to List
         val ps = for {JArray(point) <-points} yield point
         // create List[Seq[(colname -> value)]] 
@@ -86,7 +86,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
         JField("columns", JArray(cols)) <- seriesData
         JField("points", JArray(points)) <- seriesData
         
-      } yield constructSeriesResult(name, for {JString(s) <- cols} yield s, points)
+      } yield constructSeries(name, for {JString(s) <- cols} yield s, points)
       Success(result)
    }
 }
