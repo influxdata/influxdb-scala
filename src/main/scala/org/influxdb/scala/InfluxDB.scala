@@ -14,6 +14,7 @@ import java.net.URLEncoder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import scala.annotation.tailrec
+import java.util.Date
 
 class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String) {
   
@@ -35,7 +36,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
       def run = {
     	val response = f.get
     	if (response.getStatusCode() < 400) {
-    	  p.complete(jsonToSeries(response.getResponseBody()))
+    	  p.complete(jsonToSeries(response.getResponseBody(), precision))
     	} else {
     	  p.failure(
     	      new RuntimeException(s"Error response: ${response.getStatusCode()}: ${response.getResponseBody()}"))
@@ -49,10 +50,9 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
 ???     
    }
    
-   private def jsonToSeries(response: String): Try[QueryResult] = {
+   private def jsonToSeries(response: String, precision: TimeUnit.TimeUnit): Try[QueryResult] = {
       LOG.debug(s"received: $response")
       val json = JsonParser.parse(response)
-      val data = json.extract[QueryResult]
       
       @tailrec
 	  def rmap[A,B](in: Seq[(A,B)], out: Map[A,B] = Map[A,B]() ): Map[A,B] = in match {
@@ -67,7 +67,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
         // create List[Seq[(colname -> value)]] 
         val r = ps.map (p => cols.zipWithIndex.map {case (col, index) => (col -> p(index)) })
         
-        def extractValue(v : JValue):Any = {
+        def extractValue(k: String, v : JValue):Any = {
           v match {
             case JInt(anInt) => anInt
             case JString(aString) => aString
@@ -76,8 +76,8 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
           }
         }
         
-        val maps = r map (e => rmap[String,Any](e map (l => (l._1, extractValue(l._2)))) )
-        Series(name, maps)
+        val maps = r map (e => rmap[String,Any](e map (l => (l._1, extractValue(l._1,l._2)))) )
+        Series(name, precision, maps)
       }
       
       val result = for {
@@ -118,7 +118,7 @@ object InfluxDB {
    * A series has a name, a list of columns and data.
    * The length of columnData in each data has to match the length of columns
    */
-  case class Series(name:String,data:Seq[DataPoint])
+  case class Series(name:String,time_precision: TimeUnit.TimeUnit, data:Seq[DataPoint])
   
   type QueryResult = Seq[Series]
   
