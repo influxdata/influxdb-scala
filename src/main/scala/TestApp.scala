@@ -1,23 +1,18 @@
 import java.util.concurrent.Executors
-import org.influxdb.scala.InfluxDB
-import org.influxdb.scala.InfluxDB.TimeUnit
 import scala.concurrent.Await
+import org.influxdb.scala.InfluxDB
 import scala.concurrent.duration.DurationInt
+import org.influxdb.scala.MILLIS
 
 object TestApp extends App {
 
   import org.influxdb.scala.InfluxDB
-  
-  import scala.concurrent._
+  import scala.concurrent.Await
   import scala.concurrent.duration._
-  import org.influxdb.scala.InfluxDB
-  import org.influxdb.scala.InfluxDB.TimeUnit._
-  import java.util.concurrent.{Executors,ExecutorService}
-  implicit lazy val pool = Executors.newFixedThreadPool(2)
 
   val db = InfluxDB("localhost",8086,"frank","frank","testing")  
   
-  val result = db.query("select foo,bar from data", u)
+  val result = db.query("select foo,bar from data", MILLIS)
   
   val data = Await.result(result, 10 seconds)
   for {

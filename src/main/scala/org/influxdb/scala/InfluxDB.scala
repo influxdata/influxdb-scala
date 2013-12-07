@@ -15,20 +15,22 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import scala.annotation.tailrec
 import java.util.Date
-
+import java.util.concurrent.{Executors,ExecutorService}
+ 
 class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String) {
   
   implicit lazy val formats = DefaultFormats
+  implicit lazy val pool = Executors.newFixedThreadPool(3)
 
   val LOG = LoggerFactory.getLogger("InfluxDB")
   
   /**
    * Execute the query asynchronously, resulting in a future Series
    */
-  def query(queryString:String, precision: TimeUnit.TimeUnit)(implicit exec: Executor): Future[QueryResult] = {
+  def query(queryString:String, precision: Precision): Future[QueryResult] = {
     val client = new AsyncHttpClient()
     val encodedQ = URLEncoder.encode(queryString,"utf-8")
-    val url = s"http://$hostName:$port/db/$db/series?u=$user&p=$pwd&time_precision=$precision&q=$encodedQ"
+    val url = s"http://$hostName:$port/db/$db/series?u=$user&p=$pwd&time_precision=${precision.qs}&q=$encodedQ"
     LOG.debug(s"url = $url")
     val f = client.prepareGet(url).execute()
     val p = Promise[QueryResult]()
@@ -42,7 +44,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
     	      new RuntimeException(s"Error response: ${response.getStatusCode()}: ${response.getResponseBody()}"))
     	}
       }
-    }, exec)
+    }, pool)
     p.future
    }
    
@@ -50,7 +52,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
 ???     
    }
    
-   private def jsonToSeries(response: String, precision: TimeUnit.TimeUnit): Try[QueryResult] = {
+   private def jsonToSeries(response: String, precision: Precision): Try[QueryResult] = {
       LOG.debug(s"received: $response")
       val json = JsonParser.parse(response)
       
@@ -69,6 +71,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
         
         def extractValue(k: String, v : JValue):Any = {
           v match {
+            case JInt(anInt) if (k=="time") => precision.toDate(anInt)
             case JInt(anInt) => anInt
             case JString(aString) => aString
             case JBool(aBool) => aBool
@@ -92,20 +95,6 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
 }
 
 object InfluxDB {
-
-  /**
-   * Granularity of time units in data points
-   */
-  object TimeUnit extends Enumeration {
-    type TimeUnit = Value
-    val s, m, u = Value
-  }
-  
-  /**
-   * A point in time is a long with a given granularity representing an 
-   * epoch from 1, Jan 1970 in either seconds, milliseconds, or microseconds.
-   */
-  type Time = (Long,TimeUnit.TimeUnit)
   
   /**
    * columns is just a sequence of strings
@@ -118,7 +107,7 @@ object InfluxDB {
    * A series has a name, a list of columns and data.
    * The length of columnData in each data has to match the length of columns
    */
-  case class Series(name:String,time_precision: TimeUnit.TimeUnit, data:Seq[DataPoint])
+  case class Series(name:String,time_precision: Precision, data:Seq[DataPoint])
   
   type QueryResult = Seq[Series]
   
