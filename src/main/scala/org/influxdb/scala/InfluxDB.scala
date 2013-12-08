@@ -16,22 +16,29 @@ import org.slf4j.LoggerFactory
 import scala.annotation.tailrec
 import java.util.Date
 import java.util.concurrent.{Executors,ExecutorService}
- 
+import scala.concurrent.ExecutionContext.Implicits.global
+import org.influxdb.scala.macros.Macros.Mappable
+import org.influxdb.scala.macros.Macros.Mappable._
+
 class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String) {
   
   implicit lazy val formats = DefaultFormats
-  implicit lazy val pool = Executors.newFixedThreadPool(3)
-
+  implicit lazy val pool = Executors.newSingleThreadExecutor()
+  val client = new AsyncHttpClient()
   val urlPrefix = s"http://$hostName:$port/db/${db.urlEncoded}/series?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
   
   val LOG = LoggerFactory.getLogger("InfluxDB")
+  
+  def shutdown {
+    pool.shutdownNow()
+    client.close()
+  }
   
   /**
    * Execute the query asynchronously, resulting in a future QueryResult
    * Since an influx query can deliver results from multiple series, a QueryResult is a Seq[Series]
    */
   def query(queryString:String, precision: Precision): Future[QueryResult] = {
-    val client = new AsyncHttpClient()
     val url = s"$urlPrefix&time_precision=${precision.qs}&q=${queryString.urlEncoded}"
     LOG.debug(s"url = $url")
     val f = client.prepareGet(url).execute()
@@ -48,6 +55,15 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
       }
     }, pool)
     p.future
+   }
+   
+   def queryAs[T](queryString:String, precision: Precision)(implicit mapper: Mappable[T]): Future[TQueryResult[T]] = {
+     // TODO figure out how to get context bounds to work and use implicitly instead of currying
+     query(queryString, precision) map {qr => 
+       qr map {series => 
+         TSeries[T](series.name, precision, series.data.map(p => mapper.fromMap(p)))
+       }
+     }
    }
    
    def insertData(series:Series):Future[Try[Unit]] = {
@@ -104,11 +120,19 @@ object InfluxDB {
   type DataPoint = Map[String,Any]
   
   /**
-   * A series has a name and a sequence of DataPoints.
+   * An untyped series has a name and a sequence of DataPoints.
    */
   case class Series(name:String,time_precision: Precision, data:Seq[DataPoint])
   
+  /**
+   * A TSeries (typed series) has a name, precision and a sequence of objects of type T specified 
+   * by the application
+   * @see queryAs[T]
+   */
+  case class TSeries[T](name: String, time_precision:Precision, data: Seq[T])
+  
   type QueryResult = Seq[Series]
+  type TQueryResult[T] = Seq[TSeries[T]]
   
   def apply(host: String, port: Int, user: String, pwd: String, db:String): InfluxDB = 
     new InfluxDB(host,port, user, pwd, db)

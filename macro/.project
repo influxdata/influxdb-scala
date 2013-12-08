@@ -1,5 +1,5 @@
 <projectDescription>
-  <name>main</name>
+  <name>macro</name>
   <buildSpec>
     <buildCommand>
       <name>org.scala-ide.sdt.core.scalabuilder</name>
