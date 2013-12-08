@@ -22,6 +22,8 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
   implicit lazy val formats = DefaultFormats
   implicit lazy val pool = Executors.newFixedThreadPool(3)
 
+  val urlPrefix = s"http://$hostName:$port/db/${db.urlEncoded}/series?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
+  
   val LOG = LoggerFactory.getLogger("InfluxDB")
   
   /**
@@ -29,8 +31,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
    */
   def query(queryString:String, precision: Precision): Future[QueryResult] = {
     val client = new AsyncHttpClient()
-    val encodedQ = URLEncoder.encode(queryString,"utf-8")
-    val url = s"http://$hostName:$port/db/$db/series?u=$user&p=$pwd&time_precision=${precision.qs}&q=$encodedQ"
+    val url = s"$urlPrefix&time_precision=${precision.qs}&q=${queryString.urlEncoded}"
     LOG.debug(s"url = $url")
     val f = client.prepareGet(url).execute()
     val p = Promise[QueryResult]()
@@ -96,16 +97,10 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
 
 object InfluxDB {
   
-  /**
-   * columns is just a sequence of strings
-   */
-  type Columns = Seq[String] 
-  
   type DataPoint = Map[String,Any]
   
   /**
-   * A series has a name, a list of columns and data.
-   * The length of columnData in each data has to match the length of columns
+   * A series has a name and data.
    */
   case class Series(name:String,time_precision: Precision, data:Seq[DataPoint])
   
