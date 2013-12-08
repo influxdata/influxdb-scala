@@ -27,7 +27,8 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
   val LOG = LoggerFactory.getLogger("InfluxDB")
   
   /**
-   * Execute the query asynchronously, resulting in a future Series
+   * Execute the query asynchronously, resulting in a future QueryResult
+   * Since an influx query can deliver results from multiple series, a QueryResult is a Seq[Series]
    */
   def query(queryString:String, precision: Precision): Future[QueryResult] = {
     val client = new AsyncHttpClient()
@@ -97,10 +98,13 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
 
 object InfluxDB {
   
+  /**
+   * The column list in the json results is used to create a Map for each row in the result.
+   */
   type DataPoint = Map[String,Any]
   
   /**
-   * A series has a name and data.
+   * A series has a name and a sequence of DataPoints.
    */
   case class Series(name:String,time_precision: Precision, data:Seq[DataPoint])
   
