@@ -19,6 +19,8 @@ import java.util.concurrent.{Executors,ExecutorService}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.influxdb.scala.macros.Macros.Mappable
 import org.influxdb.scala.macros.Macros.Mappable._
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 
 class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String) {
   
@@ -29,8 +31,9 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
   
   val LOG = LoggerFactory.getLogger("InfluxDB")
   
-  def shutdown {
-    pool.shutdownNow()
+  def shutdown(timeout: Duration) {
+    pool.awaitTermination(timeout.length, timeout.unit)
+    pool.shutdown()
     client.close()
   }
   
