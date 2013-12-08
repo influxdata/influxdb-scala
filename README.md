@@ -7,6 +7,13 @@ Unfortunately requires scala 2.11.0-M5 since I could not get the
 [Mappable macro](http://blog.echo.sh/post/65955606729/exploring-scala-macros-map-to-case-class-conversion "Exploring Scala Macros: Map to Case Class Conversion by Jonathan Chow")
 to work with 2.10.3 and macro paradise.
 
+###Dependencies
+
+Currently uses [async-httpclient](https://github.com/AsyncHttpClient/async-http-client) to communicate with the InfluxDB REST
+service and [json4s](http://json4s.org) to convert to and from json.
+I'm looking for a way to abstract these aspects so other libraries can be used, for example in a Play! framework application
+it would make more sense to use WS and the existing json macros.
+
 ###Untyped querying
 
 Assuming a test database with a series named data (created with [this](http://obfuscurity.com/2013/11/My-Impressions-of-InfluxDB "obfuscurity blog")), and the following code:
