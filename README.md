@@ -20,7 +20,9 @@ Assuming a test database with a series named data (created with [this](http://ob
       } yield println(s"${series.name} has point $point with time precision ${series.time_precision}")
     }
     
-Note that the query method is asynchronous and returns a Future[QueryResult]this will print the following
+Note that the query method is asynchronous and returns a *Future[QueryResult]*. I used a for comprehension
+as an example of how to handle multiple series in the result, even though in this case there is only one.
+This will print the following
 
     data has point Map(time -> Mon Dec 02 20:49:45 EST 2013, sequence_number -> 1, bar -> 287, foo -> 214) with time precision MILLIS
     data has point Map(time -> Mon Dec 02 20:49:46 EST 2013, sequence_number -> 2, bar -> 156, foo -> 246) with time precision MILLIS
@@ -49,8 +51,9 @@ Using the same data as above, we can also map the result to instances of a case 
 	  } yield println(s"${series.name} has point $point with time precision ${series.time_precision}")
     }
     
-The additional imports are required to discover the implicit macro that does the conversion from Map[String,Any] to Testpoint.
-When you run this, the output looks like this:
+As in the untyped case, queryAs[T] is ansynchronous and in this case returns a *Future[TQueryResult[T]]* with
+T being TestPoint in our case. The additional imports are required to discover the implicit macro that does the 
+conversion from Map[String,Any] to Testpoint. When you run this, the output looks like this:
 
     data has point TestPoint(Mon Dec 02 20:49:45 EST 2013,1,287,214) with time precision MILLIS
     data has point TestPoint(Mon Dec 02 20:49:46 EST 2013,2,156,246) with time precision MILLIS
