@@ -61,7 +61,7 @@ Using the same data as above, the API can also deliver the data point results as
     }
     
 As in the untyped case, queryAs[T] is ansynchronous and in this case returns a *Future[TQueryResult[T]]* with
-T being *TestPoint* in our case. TQueryResult is a sequcnce of TSeries, which represents its data points as a
+T being *TestPoint* in this example. TQueryResult is a sequence of *TSeries[T]*, which represents its data points as a
 sequence of T. The additional imports are required to discover the implicit macro that does the 
 conversion from Map[String,Any] to Testpoint. When you run this, the output looks like this:
 
