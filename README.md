@@ -29,7 +29,9 @@ Assuming a test database with a series named data (created with [this](http://ob
     
 Note that the query method is asynchronous and returns a *Future[QueryResult]*. I used a for comprehension
 as an example of how to handle multiple series in the result, even though in this case there is only one.
-This will print the following
+A QueryResults is a sequence of Series objects since a query can return results form multiple Series. A Series
+has a name, the given time precision of the query and a sequence of data points. In the untyped case, a data point
+is simply a Map[String,Any] mapping column name to value. The above code will print the following output:
 
     data has point Map(time -> Mon Dec 02 20:49:45 EST 2013, sequence_number -> 1, bar -> 287, foo -> 214) with time precision MILLIS
     data has point Map(time -> Mon Dec 02 20:49:46 EST 2013, sequence_number -> 2, bar -> 156, foo -> 246) with time precision MILLIS
@@ -44,7 +46,7 @@ This will print the following
 
 ###Typed querying
 
-Using the same data as above, we can also map the result to instances of a case class using the queryAs method, as follows:
+Using the same data as above, the API can also deliver the data point results as instances of a case class using the *queryAs[T]* method, as follows:
 
     import org.influxdb.scala.macros.Macros.Mappable
     import org.influxdb.scala.macros.Macros.Mappable._
@@ -59,7 +61,8 @@ Using the same data as above, we can also map the result to instances of a case 
     }
     
 As in the untyped case, queryAs[T] is ansynchronous and in this case returns a *Future[TQueryResult[T]]* with
-T being TestPoint in our case. The additional imports are required to discover the implicit macro that does the 
+T being *TestPoint* in our case. TQueryResult is a sequcnce of TSeries, which represents its data points as a
+sequence of T. The additional imports are required to discover the implicit macro that does the 
 conversion from Map[String,Any] to Testpoint. When you run this, the output looks like this:
 
     data has point TestPoint(Mon Dec 02 20:49:45 EST 2013,1,287,214) with time precision MILLIS
