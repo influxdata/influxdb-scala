@@ -21,6 +21,7 @@ import org.influxdb.scala.macros.Macros.Mappable
 import org.influxdb.scala.macros.Macros.Mappable._
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Duration
+import scala.util.Failure
 
 class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String) {
   
@@ -69,31 +70,48 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
      }
    }
    
+   def insertData(seriesName: String, point: DataPoint): Future[Try[Unit]] = {
+???
+   }
+   
+   def insertDataFrom[T](seriesName: String, point: T): Future[Try[Unit]] = {
+???
+   }
+   
    def insertData(series:Series):Future[Try[Unit]] = {
+???     
+   }
+   
+   def insertDataFrom[T](series:TSeries[T]):Future[Try[Unit]] = {
 ???     
    }
    
    private def jsonToSeries(response: String, precision: Precision): Try[QueryResult] = {
       LOG.debug(s"received: $response")
-      val json = JsonParser.parse(response)
       
+      /**
+       * create a Map from a Seq of (k,v) pairs
+       */
       @tailrec
 	  def rmap[A,B](in: Seq[(A,B)], out: Map[A,B] = Map[A,B]() ): Map[A,B] = in match {
 	     case (e @ (k,v)) :: tail if out.getOrElse(k,v) == v => rmap(tail, out + e)
 	     case Nil => out
-	     //case _ => None
 	  }
       
-      def constructSeries(name:String, cols: Seq[String], points: List[JValue]) = {
+      /**
+       * build a Series instance from the given name, columns and data points
+       */
+      def constructSeries(name:String, cols: Seq[String], points: List[JValue]): Series = {
         // convert JArray to List
         val ps = for {JArray(point) <-points} yield point
         // create List[Seq[(colname -> value)]] 
         val r = ps.map (p => cols.zipWithIndex.map {case (col, index) => (col -> p(index)) })
         
+        // maps the untyped JValue to its proper type (time becomes a java.util.Date)
         def extractValue(k: String, v : JValue):Any = {
           v match {
             case JInt(anInt) if (k=="time") => precision.toDate(anInt)
-            case JInt(anInt) => anInt
+            case JInt(anInt) => anInt // TODO do we want to keep BigInt here?
             case JString(aString) => aString
             case JBool(aBool) => aBool
             case _ => None
@@ -103,15 +121,19 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
         val maps = r map (e => rmap[String,Any](e map (l => (l._1, extractValue(l._1,l._2)))) )
         Series(name, precision, maps)
       }
-      
-      val result = for {
-        JObject(seriesData) <- json
-        JField("name",JString(name)) <- seriesData
-        JField("columns", JArray(cols)) <- seriesData
-        JField("points", JArray(points)) <- seriesData
-        
-      } yield constructSeries(name, for {JString(s) <- cols} yield s, points)
-      Success(result)
+ 
+      try {
+      	val json = JsonParser.parse(response)
+      	val result = for {
+            JObject(seriesData) <- json
+            JField("name",JString(name)) <- seriesData
+            JField("columns", JArray(cols)) <- seriesData
+            JField("points", JArray(points)) <- seriesData 
+        } yield constructSeries(name, for {JString(s) <- cols} yield s, points)
+        Success(result)
+      } catch {
+        case t: Throwable => Failure(t)
+      }
    }
 }
 
