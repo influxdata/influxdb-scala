@@ -9,6 +9,7 @@ import scala.concurrent.Promise
 import org.json4s.native.JsonParser
 import org.json4s.JsonAST._
 import org.json4s.DefaultFormats
+import org.json4s.native.Serialization.{read, write => swrite}
 import scala.util.Success
 import java.net.URLEncoder
 import org.slf4j.Logger
@@ -70,16 +71,90 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
      }
    }
    
-   def insertData(seriesName: String, point: DataPoint): Future[Try[Unit]] = {
-???
+   /**
+    * extracts the value for key c from a Map[String,Any] as a JValue of the appropriate type.
+    * If key is not found returns JNull
+    * @param point the data point 
+    * @param c column name
+    * @precision time precision for values of type Date
+    */
+   private def pointValue(point: DataPoint, c: String, precision:Precision) = point.getOrElse(c, null) match {
+ 	  case i:Int => JInt(i)
+ 	  case d:Double => JDouble(d)
+ 	  case f:Float => JDouble(f)
+ 	  case d:BigDecimal => JDecimal(d)
+ 	  case i:BigInt => JInt(i)
+ 	  case s:String => JString(s)
+ 	  case b:Boolean => JBool(b)
+ 	  case d: Date => JInt(precision.toBigInt(d))
+ 	  case null => JNull
+   }
+   
+   /**
+    * transforms a DataPoint (Map[String,Any]) to a JArray of values. Size of result will be equal to size
+    * of columns with null values for missing keys
+    */
+   private def collectValues(columns:List[String], point: DataPoint, precision:Precision) : JArray = {
+	  val values = columns.map ( c => pointValue(point, c, precision))
+	  JArray(values)
+   }
+   
+   /**
+    * single point insertion
+    * @param seriesName name of the series to insert the point into
+    * @param point Datapoint (a Map[String,Any]). If you need time to be added, have a "time"-> aDate in the map
+    * @param precision MICROS,MILLIS or SECONDS; determines how the "time" column gets encoded
+    */
+   def insertData(seriesName: String, point: DataPoint, precision: Precision): Future[Unit] = {
+     val colNames = point.keys.toList
+     insertData(seriesName, colNames, List(collectValues(colNames, point, precision)), precision)
    }
    
    def insertDataFrom[T](seriesName: String, point: T): Future[Try[Unit]] = {
 ???
    }
    
-   def insertData(series:Series):Future[Try[Unit]] = {
-???     
+   /**
+    * combine the keys for all points into a single list of column names.
+    * points in the sequence may have different columns, and the values in the points array
+    * for missing columns will be null
+    */
+   private def allColumns(points: Seq[DataPoint]) : List[String] = 
+	  	points.foldLeft(Set[String]())((acc, p) => acc ++ p.keys.toSet).toList
+   
+   
+   private def insertData(name:String, columns:List[String], points: List[JArray], precision: Precision): Future[Unit] = {
+     val series = JObject(
+         "name"-> JString(name),
+         "columns" -> JArray(columns.map(c=>JString(c))),
+         "points" -> JArray(points)
+     )
+     val json = swrite(List(series))
+     val url = s"$urlPrefix&time_precision=${precision.qs}"         
+     println(s"submitting $json to $urlPrefix")
+     val p = Promise[Unit]()
+     val f = client.preparePost(url).setBody(json).addHeader("Content-Type", "application/json").execute
+     f.addListener(new Runnable () {
+       def run {
+	        val response = f.get
+	    	if (response.getStatusCode() < 400) {
+	    	  p.success()
+	    	} else {
+	    	  p.failure(
+	    	      new RuntimeException(s"Error response: ${response.getStatusCode()}: ${response.getResponseBody()}"))
+	    	}
+       }
+     }, pool)
+     p.future
+     
+   }
+   
+   def insertData(series:Series):Future[Unit] = {
+	  val columns = allColumns(series.data)
+	  println(s"combined columns: $columns")
+	  val points = series.data.map(point => collectValues(columns, point, series.time_precision))
+	  println(swrite(points))
+	  insertData(series.name, columns, points, series.time_precision)
    }
    
    def insertDataFrom[T](series:TSeries[T]):Future[Try[Unit]] = {
@@ -147,7 +222,7 @@ object InfluxDB {
   /**
    * An untyped series has a name and a sequence of DataPoints.
    */
-  case class Series(name:String,time_precision: Precision, data:Seq[DataPoint])
+  case class Series(name:String, time_precision: Precision, data: List[DataPoint])
   
   /**
    * A TSeries (typed series) has a name, precision and a sequence of objects of type T specified 
@@ -159,6 +234,5 @@ object InfluxDB {
   type QueryResult = Seq[Series]
   type TQueryResult[T] = Seq[TSeries[T]]
   
-  def apply(host: String, port: Int, user: String, pwd: String, db:String): InfluxDB = 
-    new InfluxDB(host,port, user, pwd, db)
+  def apply(host: String, port: Int, user: String, pwd: String, db:String): InfluxDB = new InfluxDB(host,port, user, pwd, db)
 }

@@ -5,23 +5,27 @@ object Precision extends Enum[Precision]
   
   sealed trait Precision extends Precision.Value {
     def toDate(time: BigInt): Date
+    def toBigInt(d: Date): BigInt
     def qs:String
   }
   case object SECONDS extends Precision {
-    val qs="s"
-	def toDate(time: BigInt): Date = {
+    override val qs="s"
+	override def toDate(time: BigInt): Date = {
 	    new Date(time.longValue * 1000)
 	} 
+    override def toBigInt(d: Date): BigInt = d.getTime() / 1000
   }
   case object MILLIS extends Precision {
-    val qs="m"
-    def toDate(time: BigInt): Date = {
+    override val qs="m"
+    override def toDate(time: BigInt): Date = {
 	    new Date(time.longValue)
 	} 
+    override def toBigInt(d: Date): BigInt = d.getTime()
   }
   case object MICROS extends Precision {
-    val qs="u"
-    def toDate(time: BigInt): Date = {
+    override val qs="u"
+    override def toDate(time: BigInt): Date = {
 	    new Date(time.longValue / 1000)
-	} 
+	}
+    override def toBigInt(d: Date): BigInt = d.getTime() * 1000
   }
