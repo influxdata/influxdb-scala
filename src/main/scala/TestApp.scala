@@ -24,7 +24,7 @@ object TestApp extends App {
   import org.influxdb.scala.macros.Macros.Mappable
   import org.influxdb.scala.macros.Macros.Mappable._
   
-  case class TestPoint(time: Date, bar: BigInt, foo: BigInt)
+  case class TestPoint(time: Date, bar: Option[BigInt], foo: Option[BigInt], baz: Option[BigInt])
 
 
   db.queryAs[TestPoint]("select * from testing limit 10", MILLIS) onComplete{ 

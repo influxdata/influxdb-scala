@@ -186,9 +186,9 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
         def extractValue(k: String, v : JValue):Any = {
           v match {
             case JInt(anInt) if (k=="time") => precision.toDate(anInt)
-            case JInt(anInt) => anInt // TODO do we want to keep BigInt here?
-            case JString(aString) => aString
-            case JBool(aBool) => aBool
+            case JInt(anInt) => Some(anInt) // TODO do we want to keep BigInt here?
+            case JString(aString) => Some(aString)
+            case JBool(aBool) => Some(aBool)
             case _ => None
           }
         }
