@@ -4,14 +4,26 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Success
 import scala.util.Failure
-import org.influxdb.scala.InfluxDB.Series
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 object TestApp extends App {
-    
-  val db = InfluxDB("localhost",8086,"frank","frank","testing")  
+  
+  implicit val pool = Executors.newSingleThreadExecutor()   
+  
+  /**
+   * This is the cake pattern wiring where we choose to use the AsyncHttpClient version 
+   * of the abstract HTTPService. In the context of a Play! framework app, you 
+   * can replace AsyncHttpClientImpl with a different implementation trait that uses WS.
+   * See http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
+   */
+  object db extends InfluxDBClientComponent with HTTPServiceComponent {
+    override val client = new InfluxDBClient("localhost",8086,"frank","frank","testing") 
+    override val httpService = new AsyncHttpClientImpl
+  }
   
   // get the last point in all series
-  db.query("select * from data order asc limit 10", MILLIS) onComplete { 
+  db.client.query("select * from data order asc limit 10", MILLIS) onComplete { 
     case Success(result) => for {
       series <- result
       point <- series.data
@@ -27,7 +39,7 @@ object TestApp extends App {
   case class TestPoint(time: Date, bar: Option[BigInt], foo: Option[BigInt], baz: Option[BigInt])
 
 
-  db.queryAs[TestPoint]("select * from testing limit 10", MILLIS) onComplete{ 
+  db.client.queryAs[TestPoint]("select * from testing limit 10", MILLIS) onComplete{ 
     case Success(result) =>
 	  for {
 	    series <- result
@@ -41,7 +53,7 @@ object TestApp extends App {
   //
   
   // single point insertion
-  db.insertData("testing", Map("time"->new Date(), "foo" -> 100, "bar"->200), MICROS).onComplete {
+  db.client.insertData("testing", Map("time"->new Date(), "foo" -> 100, "bar"->200), MICROS).onComplete {
     case _:Success[Unit] => println("Single-point insert succeeded!!!")
     case Failure(error) => println(s"Oops, point insert failed: $error")
   }
@@ -50,12 +62,13 @@ object TestApp extends App {
   val p1 = Map("foo" -> 100, "bar"->200)
   val p2 = Map("bar" -> 100, "baz"->300)
   val s = Series("testing", MILLIS, List(p1,p2))
-  db.insertData(s) onComplete {
+  db.client.insertData(s) onComplete {
     case _:Success[Unit] => println("Series insert succeeded!!!")
     case Failure(error) => println(s"Oops, series insert failed: $error")
     
   }
     
   // have to do this, otherwise won't terminate, wait for 10 seconds for pending tasks to complete
-  db.shutdown(3 seconds)
+  pool.awaitTermination(3, TimeUnit.SECONDS)
+  pool.shutdown()
 }

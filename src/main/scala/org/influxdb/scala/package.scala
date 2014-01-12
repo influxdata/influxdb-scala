@@ -18,4 +18,10 @@ package object scala {
     
   }
 
+ /**
+   * The column list in the json results is used to create a Map for each row in the result.
+   */
+  type DataPoint = Map[String, Any]
+  type QueryResult = Seq[Series]
+  type TQueryResult[T] = Seq[TSeries[T]] 
 }

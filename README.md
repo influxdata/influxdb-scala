@@ -46,11 +46,13 @@ is simply a Map[String,Any] mapping column name to value. The above code will pr
 
 ###Typed querying
 
-Using the same data as above, the API can also deliver the data point results as instances of a case class using the *queryAs[T]* method, as follows:
+Using the same data as above, the API can also deliver the data point results as instances of case classes defined by you! 
+To do so, use the *queryAs[T]* method, as follows:
 
     import org.influxdb.scala.macros.Macros.Mappable
     import org.influxdb.scala.macros.Macros.Mappable._
-  
+    
+    // simple example case class
     case class TestPoint(time: Date, sequence_number: BigInt, bar: BigInt, foo: BigInt)
 
     db.queryAs[TestPoint]("select foo,bar from data order asc limit 10", MILLIS) onSuccess{ case result =>
@@ -84,3 +86,4 @@ the background threads that allow this client to be asynchronous.
 this will block for at most 10 seconds to allow pending queries to complete.
 
 ### Inserting new data
+
