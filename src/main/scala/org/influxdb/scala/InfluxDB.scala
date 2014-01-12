@@ -40,7 +40,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
   val client = new AsyncHttpClient()
   val urlPrefix = s"http://$hostName:$port/db/${db.urlEncoded}/series?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
   
-  val LOG = LoggerFactory.getLogger("InfluxDB")
+  val LOG = LoggerFactory.getLogger("org.influxdb.scala.InfluxDB")
   
   def shutdown(timeout: Duration) {
     pool.awaitTermination(timeout.length, timeout.unit)
