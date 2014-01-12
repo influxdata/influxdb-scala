@@ -9,9 +9,9 @@ import org.influxdb.scala.HTTPServiceComponent.HTTPService
 /**
  * Implementation of HTTPService using the (java) AsyncHttpClient library
  */
-class AsyncHttpClientImpl extends HTTPService {
+class AsyncHttpClientImpl(implicit pool:ExecutorService) extends HTTPService {
 
-  def GET(url: String)(implicit pool: ExecutorService): Future[String] = {
+  def GET(url: String): Future[String] = {
     val client = new AsyncHttpClient()
     val f = client.prepareGet(url).execute()
     val p = Promise[String]()
@@ -29,7 +29,7 @@ class AsyncHttpClientImpl extends HTTPService {
     p.future
   }
 
-  def POST(url: String, body: String, contentType: String)(implicit pool: ExecutorService): Future[Unit] = {
+  def POST(url: String, body: String, contentType: String): Future[Unit] = {
     val p = Promise[Unit]()
     val client = new AsyncHttpClient()
     val f = client.preparePost(url).setBody(body).addHeader("Content-Type", "application/json").execute

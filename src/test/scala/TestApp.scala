@@ -15,7 +15,6 @@ import org.influxdb.scala.AsyncHttpClientImpl
 
 object TestApp extends App {
 
-  implicit val pool = Executors.newSingleThreadExecutor()
 
   /**
    * This is the cake pattern wiring where we choose to use the AsyncHttpClient version
@@ -24,8 +23,15 @@ object TestApp extends App {
    * See http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
    */
   object db extends InfluxDBClientComponent with HTTPServiceComponent {
+    implicit val pool = Executors.newSingleThreadExecutor()
     override val client = new InfluxDBClient("localhost", 8086, "frank", "frank", "testing")
     override val httpService = new AsyncHttpClientImpl
+    
+    // this is defined here since it is purely for the executorService created here
+    def shutdown(timeout: Duration) {
+      pool.awaitTermination(timeout.length, timeout.unit)
+      pool.shutdown()  
+    }
   }
 
   // get the last point in all series
@@ -78,7 +84,6 @@ object TestApp extends App {
     case Failure(error) => println(s"Oops, Typed single point insert failed: $error")
   }
   
-  // have to do this, otherwise won't terminate, wait for 3 seconds for pending tasks to complete
-  pool.awaitTermination(3, TimeUnit.SECONDS)
-  pool.shutdown()
+  // have to do this, otherwise app won't terminate, wait for 1 second for pending tasks to complete
+  db.shutdown(1 seconds)
 }

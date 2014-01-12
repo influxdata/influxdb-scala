@@ -2,7 +2,6 @@ package org.influxdb.scala
 
 import scala.concurrent.Future
 import scala.util.Try
-import java.util.concurrent.Executor
 import scala.concurrent.Promise
 import org.json4s.native.JsonParser
 import org.json4s.JsonAST._
@@ -19,7 +18,6 @@ import org.influxdb.scala.macros.Macros.Mappable
 import org.influxdb.scala.macros.Macros.Mappable._
 import scala.concurrent.duration.Duration
 import scala.util.Failure
-import java.util.concurrent.ExecutorService
 
 // Cake pattern, see http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
 trait InfluxDBClientComponent {
@@ -27,7 +25,7 @@ trait InfluxDBClientComponent {
 
   val client: InfluxDBClient
 
-  class InfluxDBClient(hostName: String, port: Int, user: String, pwd: String, db: String)(implicit pool: ExecutorService) {
+  class InfluxDBClient(hostName: String, port: Int, user: String, pwd: String, db: String) {
 
     implicit lazy val formats = DefaultFormats
 

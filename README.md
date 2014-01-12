@@ -17,12 +17,16 @@ In order to configure an influxdb client that uses the async-httpclient, you cou
 
     import org.influxdb.scala._
     
-    implicit val executorService = Executors.newSingleThreadExecutor()
-    
     object db extends InfluxDBClientComponent with HTTPServiceComponent {
-      val dbPort = 8086
-      override val client = new InfluxDBClient("database-host", dbPort, "username", "password", "dbname")
+      implicit val ex = Executors.newSingleThreadExecutor()
+      override val client = new InfluxDBClient("localhost", 8086, "frank", "frank", "testing")
       override val httpService = new AsyncHttpClientImpl
+    
+      // this is defined here since it is purely for the executorService created here
+      def shutdown(timeout: Duration) {
+        ex.awaitTermination(timeout.length, timeout.unit)
+        ex.shutdown()  
+      }
     }
     
 The implicit **executorService** is needed by the **AsyncHttpClientImpl** to invoke http requests asynchronously.

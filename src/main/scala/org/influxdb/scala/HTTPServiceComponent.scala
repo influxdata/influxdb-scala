@@ -7,8 +7,8 @@ object HTTPServiceComponent {
 
   trait HTTPService {
 
-    def GET(url: String)(implicit pool: ExecutorService): Future[String]
-    def POST(url: String, body: String, contentType: String)(implicit pool: ExecutorService): Future[Unit]
+    def GET(url: String): Future[String]
+    def POST(url: String, body: String, contentType: String): Future[Unit]
   }
 }
 
