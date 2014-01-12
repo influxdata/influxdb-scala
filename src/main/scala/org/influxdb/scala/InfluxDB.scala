@@ -66,23 +66,33 @@ trait InfluxDBClientComponent {
 
     /**
      * extracts the value for key c from a Map[String,Any] as a JValue of the appropriate type.
-     * If key is not found returns JNull
+     * If key is not found returns JNull. 
+     * Handles values of type T and Option[T] where T in {Int,Double,Float,BigDecimal,BigInt,String,Boolean,Date}
+     * TODO this may benefit from scalavro's union types to make this more typed
      * @param point the data point
      * @param c column name
      * @precision time precision for values of type Date
      */
-    private def pointValue(point: DataPoint, c: String, precision: Precision) = point.getOrElse(c, null) match {
-      case i: Int => JInt(i)
-      case d: Double => JDouble(d)
-      case f: Float => JDouble(f)
-      case d: BigDecimal => JDecimal(d)
-      case i: BigInt => JInt(i)
-      case s: String => JString(s)
-      case b: Boolean => JBool(b)
-      case d: Date => JInt(precision.toBigInt(d))
-      case null => JNull
+    private def pointValue(point: DataPoint, c: String, precision: Precision):JValue = {
+      def jValueOf(x:Any):JValue = x match {
+        case i: Int => JInt(i)
+        case d: Double => JDouble(d)
+        case f: Float => JDouble(f)
+        case d: BigDecimal => JDecimal(d)
+        case i: BigInt => JInt(i)
+        case l: Long => JInt(l)
+        case s: String => JString(s)
+        case b: Boolean => JBool(b)
+        case d: Date => JInt(precision.toBigInt(d))
+      }
+      point.getOrElse(c, null) match {
+        case None => JNull
+        case Some(thing) => jValueOf(thing)
+        case null => JNull
+        case x@_ => jValueOf(x)
+      }
     }
-
+      
     /**
      * transforms a DataPoint (Map[String,Any]) to a JArray of values. Size of result will be equal to size
      * of columns with null values for missing keys

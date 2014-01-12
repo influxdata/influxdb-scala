@@ -1,4 +1,3 @@
-import org.influxdb.scala._
 import java.util.Date
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -6,6 +5,13 @@ import scala.util.Success
 import scala.util.Failure
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import scala.Predef.Map.apply
+import org.influxdb.scala.Series
+import org.influxdb.scala.InfluxDBClientComponent
+import org.influxdb.scala.HTTPServiceComponent
+import org.influxdb.scala.MILLIS
+import org.influxdb.scala.MICROS
+import org.influxdb.scala.AsyncHttpClientImpl
 
 object TestApp extends App {
 
@@ -64,10 +70,15 @@ object TestApp extends App {
   db.client.insertData(s) onComplete {
     case _: Success[Unit] => println("Series insert succeeded!!!")
     case Failure(error) => println(s"Oops, series insert failed: $error")
-
   }
 
-  // have to do this, otherwise won't terminate, wait for 10 seconds for pending tasks to complete
+  // typed insert single point
+  db.client.insertDataFrom[TestPoint]("testing", TestPoint(new Date(), Some(1), None, Some(2)), MILLIS).onComplete {
+    case _: Success[Unit] => println("Typed single point insert succeeded!!!")
+    case Failure(error) => println(s"Oops, Typed single point insert failed: $error")
+  }
+  
+  // have to do this, otherwise won't terminate, wait for 3 seconds for pending tasks to complete
   pool.awaitTermination(3, TimeUnit.SECONDS)
   pool.shutdown()
 }
