@@ -10,18 +10,15 @@ package object scala {
     private var _values = List.empty[A]
     def values = _values
   }
-  
+
   // String extensions
   implicit class StringOps(val s: String) extends AnyVal {
-    
-    def urlEncoded = URLEncoder.encode(s,"utf-8")
-    
+
+    def urlEncoded = URLEncoder.encode(s, "utf-8")
+
   }
 
- /**
-   * The column list in the json results is used to create a Map for each row in the result.
-   */
   type DataPoint = Map[String, Any]
   type QueryResult = Seq[Series]
-  type TQueryResult[T] = Seq[TSeries[T]] 
+  type TQueryResult[T] = Seq[TSeries[T]]
 }

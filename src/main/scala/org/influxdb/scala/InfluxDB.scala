@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutorService
 // Cake pattern, see http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
 trait InfluxDBClientComponent {
   this: HTTPServiceComponent =>
-  
+
   val client: InfluxDBClient
 
   class InfluxDBClient(hostName: String, port: Int, user: String, pwd: String, db: String)(implicit pool: ExecutorService) {
@@ -159,7 +159,7 @@ trait InfluxDBClientComponent {
         def extractValue(k: String, v: JValue): Any = {
           v match {
             case JInt(anInt) if (k == "time") => precision.toDate(anInt)
-            case JInt(anInt) => Some(anInt) 
+            case JInt(anInt) => Some(anInt)
             case JString(aString) => Some(aString)
             case JBool(aBool) => Some(aBool)
             case _ => None
