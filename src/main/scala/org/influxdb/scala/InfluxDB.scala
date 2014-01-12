@@ -28,6 +28,15 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
   
   implicit lazy val formats = DefaultFormats
   implicit lazy val pool = Executors.newSingleThreadExecutor()
+  
+  // implicit conversions from typed to map-based series and vice-versa
+  implicit def toDataPoint[T:Mappable](p:T) = implicitly[Mappable[T]].toMap(p)
+  implicit def fromDataPoint[T:Mappable](p:DataPoint) = implicitly[Mappable[T]].fromMap(p)
+  implicit def TSeriesToSeries[T:Mappable](ts:TSeries[T]): Series = Series(ts.name, ts.time_precision, ts.data.map(toDataPoint(_)))
+  implicit def SeriesToTSeries[T:Mappable](s:Series): TSeries[T] = TSeries[T](s.name, s.time_precision, s.data.map(fromDataPoint(_)))
+  implicit def QResultToTQResult[T:Mappable](qr:QueryResult): TQueryResult[T] = qr map (SeriesToTSeries(_))
+  implicit def futQR2futTQR[T:Mappable](fqr:Future[QueryResult]):Future[TQueryResult[T]] = fqr map (QResultToTQResult(_))
+  
   val client = new AsyncHttpClient()
   val urlPrefix = s"http://$hostName:$port/db/${db.urlEncoded}/series?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
   
@@ -62,14 +71,8 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
     p.future
    }
    
-   def queryAs[T](queryString:String, precision: Precision)(implicit mapper: Mappable[T]): Future[TQueryResult[T]] = {
-     // TODO figure out how to get context bounds to work and use implicitly instead of currying
-     query(queryString, precision) map {qr => 
-       qr map {series => 
-         TSeries[T](series.name, precision, series.data.map(p => mapper.fromMap(p)))
-       }
-     }
-   }
+   // the magic of implicit conversions makes this a one-liner
+   def queryAs[T:Mappable](queryString:String, precision: Precision): Future[TQueryResult[T]] = query(queryString, precision)
    
    /**
     * extracts the value for key c from a Map[String,Any] as a JValue of the appropriate type.
@@ -110,8 +113,9 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
      insertData(seriesName, colNames, List(collectValues(colNames, point, precision)), precision)
    }
    
-   def insertDataFrom[T](seriesName: String, point: T): Future[Try[Unit]] = {
-???
+   def insertDataFrom[T:Mappable](seriesName: String, point: T, precision: Precision): Future[Unit] = {
+     val dp : DataPoint = point
+     insertData(seriesName, dp, precision)
    }
    
    /**
@@ -151,15 +155,12 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db:String
    
    def insertData(series:Series):Future[Unit] = {
 	  val columns = allColumns(series.data)
-	  println(s"combined columns: $columns")
 	  val points = series.data.map(point => collectValues(columns, point, series.time_precision))
 	  println(swrite(points))
 	  insertData(series.name, columns, points, series.time_precision)
    }
    
-   def insertDataFrom[T](series:TSeries[T]):Future[Try[Unit]] = {
-???     
-   }
+   def insertDataFrom[T:Mappable](series:TSeries[T]):Future[Unit] = insertData(series)
    
    private def jsonToSeries(response: String, precision: Precision): Try[QueryResult] = {
       LOG.debug(s"received: $response")
@@ -229,7 +230,7 @@ object InfluxDB {
    * by the application
    * @see queryAs[T]
    */
-  case class TSeries[T](name: String, time_precision:Precision, data: Seq[T])
+  case class TSeries[T](name: String, time_precision:Precision, data: List[T])
   
   type QueryResult = Seq[Series]
   type TQueryResult[T] = Seq[TSeries[T]]
