@@ -14,3 +14,17 @@ project/target
 
 *.class
 /bin
+
+core/.project
+
+experimental/.project
+
+standalone/.project
+
+.project
+
+.project
+
+*.iml
+
+.idea
