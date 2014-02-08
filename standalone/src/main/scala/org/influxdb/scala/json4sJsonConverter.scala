@@ -15,7 +15,11 @@ import org.json4s.native.Serialization.{write => swrite}
 import scala.math.BigInt.int2bigInt
 import scala.math.BigInt.long2bigInt
 
-class Json4sJsonConverter extends JsonConverter {
+trait Json4sJsonConverterComponent extends JsonConverterComponent {
+
+  val jsonConverter = new Json4sJsonConverter
+
+  class Json4sJsonConverter extends JsonConverter {
    
   implicit lazy val formats = DefaultFormats
 
@@ -113,4 +117,5 @@ class Json4sJsonConverter extends JsonConverter {
       val values = columns.map(c => pointValue(point, c, precision))
       JArray(values)
     }
+  }
 }

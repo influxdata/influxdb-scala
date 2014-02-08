@@ -1,7 +1,7 @@
 influxdb-scala
 ==============
 
-This is Scala client for [InfluxDB](http://influxdb.org). 
+This is the Scala client for [InfluxDB](http://influxdb.org). 
 
 The core and standalone modules are compatible with scala 2.10.3 (and possible older versions). However, the typed API available in the experimental sub module
 requires a scala 2.11.0 milestone build (currently built with M7) since I could not get the 
@@ -14,31 +14,21 @@ The standalone version uses [async-httpclient](https://github.com/AsyncHttpClien
 service and [json4s](http://json4s.org) to convert to and from json.
 
 These dependencies are injected using the [Cake Pattern](http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/).
-In order to configure an influxdb client that uses the async-httpclient, you could write the following:
+In order to configure an influxdb client that uses the async-httpclient and json4s json converters, you can write the following:
 
     import org.influxdb.scala._
     
-    object db extends InfluxDBClientComponent with HTTPServiceComponent {
-      implicit val ex = Executors.newSingleThreadExecutor()
-      override val client = new InfluxDBClient("localhost", 8086, "frank", "frank", "testing")
-      override val httpService = new AsyncHttpClientImpl
+    val client = new Client("localhost", 8086, "frank", "frank", "testing") with StandaloneConfig
     
-      // this is defined here since it is purely for the executorService created here
-      def shutdown(timeout: Duration) {
-        ex.awaitTermination(timeout.length, timeout.unit)
-        ex.shutdown()  
-      }
-    }
-    
-The implicit **executorService** is needed by the **AsyncHttpClientImpl** to invoke http requests asynchronously.
-When running in a Play! framework environment, one could write a PlayWSHttpClientImpl and use that instead of the AsyncHttpClientImpl.
-The (to be written) unit tests use a mocked Http client in order to cut out the actual database altogether.
+The StandAloneConfig trait is an empty trait that combines the AsyncHttpClientComponent with the Json4sJsonConverterComponent
+When running in a Play! framework environment, one could write a PlayConfig combining WS and the json macros and use that instead.
+Also, the (to be written) unit tests will use a MockConfig in order to cut out the actual database altogether.
 
 ###Untyped querying
 
 Assuming the above db object and a test database with a series named testing (created with [this](http://obfuscurity.com/2013/11/My-Impressions-of-InfluxDB "obfuscurity blog")), and the following code:
   
-    db.client.query("select foo,bar from testing order asc limit 10", MILLIS) onSuccess{ case result =>
+    client.query("select foo,bar from testing order asc limit 10", MILLIS) onSuccess{ case result =>
       for {
         series <- result
         point <- series.data
@@ -68,7 +58,7 @@ is simply a **Map[String,Any]** (aliased with type alias *DataPoint*) mapping co
 As with querying, insertion can also be done both from **Map[String,Any]** datapoints as well as case classes defined by you.
 Inserting a single datapoint using a map is done as follows:
 
-    db.client.insertData("testing", Map("time" -> new Date(), "foo" -> 100, "bar" -> 200), MICROS).onComplete {
+    client.insertData("testing", Map("time" -> new Date(), "foo" -> 100, "bar" -> 200), MICROS).onComplete {
       case _: Success[Unit] => println("Single-point insert succeeded!!!")
       case Failure(error) => println(s"Oops, point insert failed: $error")
     }
@@ -81,7 +71,7 @@ Multiple data points (indeed an entire series) can be inserted as follows:
     val p1 = Map("foo" -> 100, "bar" -> 200)
     val p2 = Map("bar" -> 100, "baz" -> 300)
     val series = Series("testing", MILLIS, List(p1, p2))
-    db.client.insertData(series) onComplete {
+    client.insertData(series) onComplete {
       case _: Success[Unit] => println("Series insert succeeded!!!")
       case Failure(error) => println(s"Oops, series insert failed: $error")
     }   
@@ -97,7 +87,7 @@ To do so, use the *queryAs[T]* method, as follows:
     // simple example case class
     case class TestPoint(time: Date, sequence_number: BigInt, bar: BigInt, foo: BigInt)
 
-    db.client.queryAs[TestPoint]("select foo,bar from testing order asc limit 10", MILLIS) onSuccess{ case result =>
+    client.queryAs[TestPoint]("select foo,bar from testing order asc limit 10", MILLIS) onSuccess{ case result =>
 	  for {
 	    series <- result
 	    point <- series.data
@@ -134,7 +124,7 @@ Note that all attributes of cases classes used here must be one of the following
 It should come as no surprise at this point that inserts can also be performed from case class instances. Here is an example:
 
     val tp = TestPoint(new Date(), Some(1), None, Some(2))
-    db.client.insertDataFrom[TestPoint]("testing", tp, MILLIS).onComplete {
+    client.insertDataFrom[TestPoint]("testing", tp, MILLIS).onComplete {
       case _: Success[Unit] => println("Typed single point insert succeeded!!!")
       case Failure(error) => println(s"Oops, Typed single point insert failed: $error")
     }

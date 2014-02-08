@@ -1,6 +1,5 @@
 package org.influxdb.scala
 
-import java.util.concurrent.ExecutorService
 import scala.concurrent.Future
 
 object HTTPServiceComponent {
