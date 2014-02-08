@@ -10,7 +10,6 @@ import org.json4s.native.Serialization.{write => swrite}
 import scala.util.Success
 import scala.util.Failure
 import java.util.Date
-import org.json4s.jvalue2monadic
 import org.json4s.native.Serialization.{write => swrite}
 import scala.math.BigInt.int2bigInt
 import scala.math.BigInt.long2bigInt

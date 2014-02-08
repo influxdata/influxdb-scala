@@ -10,7 +10,7 @@ object JsonConverterComponent {
 
     def jsonToSeries(response: String, precision: Precision): Try[QueryResult]
     def seriesToJson(s:Series):String
-    
+
     /**
      * combine the keys for all points into a single list of column names.
      * points in the sequence may have different columns, and the values in the points array

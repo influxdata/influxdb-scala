@@ -7,13 +7,6 @@ import scala.util.Success
 
 object TestApp extends App {
 
-  /**
-   * This is the cake pattern wiring where we choose to use the AsyncHttpClient version
-   * of the abstract HTTPService. In the context of a Play! framework app, you
-   * can replace AsyncHttpClientComponent with a different implementation trait that uses WS.
-   * Same goes for
-   * See http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
-   */
   val client = new Client("localhost", 8086, "frank", "frank", "testing") with StandaloneConfig
 
   // get the last point in all series
