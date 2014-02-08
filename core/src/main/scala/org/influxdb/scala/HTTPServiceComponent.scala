@@ -8,6 +8,8 @@ object HTTPServiceComponent {
 
     def GET(url: String): Future[String]
     def POST(url: String, body: String, contentType: String): Future[Unit]
+    def PUT(url: String, body: String, contentType: String): Future[Unit]
+    def DELETE(url: String): Future[Unit]
   }
 }
 

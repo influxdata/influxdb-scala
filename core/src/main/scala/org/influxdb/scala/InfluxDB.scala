@@ -6,6 +6,7 @@ import scala.util.Success
 import org.slf4j.LoggerFactory
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Failure
+import java.util.Date
 
 class Client(hostName: String, port: Int, user: String, pwd: String, db: String) extends InfluxDBUntypedAPI {
   this: HTTPServiceComponent with JsonConverterComponent =>
@@ -45,5 +46,11 @@ class Client(hostName: String, port: Int, user: String, pwd: String, db: String)
     val url = s"$urlPrefix&time_precision=${series.time_precision.qs}"
     LOG.debug(s"submitting $json to $urlPrefix")
     httpService.POST(url, json, "application/json")
+  }
+
+  def deleteData(seriesName:String, start: Date, end: Date): Future[Unit] = {
+    val url = s"$urlPrefix&name=$seriesName&start=${SECONDS.toBigInt(start)}&end=${SECONDS.toBigInt(end)}"
+    LOG.info(s"DELETE $url")
+    httpService.DELETE(url)
   }
 }

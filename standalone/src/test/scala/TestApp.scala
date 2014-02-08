@@ -37,6 +37,10 @@ object TestApp extends App {
     case Failure(error) => println(s"Oops, series insert failed: $error")
   }
 
+  client.deleteData("testing", new Date(0), new Date()) .onFailure {
+    case t:Throwable => println(s"Got an exception deleting data: $t")
+  }
+
   // have to do this, otherwise app won't terminate, wait for 1 second for pending tasks to complete
   client.shutdown(1 seconds)
 }

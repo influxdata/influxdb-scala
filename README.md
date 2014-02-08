@@ -75,7 +75,15 @@ Multiple data points (indeed an entire series) can be inserted as follows:
       case _: Success[Unit] => println("Series insert succeeded!!!")
       case Failure(error) => println(s"Oops, series insert failed: $error")
     }   
- 
+
+
+### Deleting Data
+
+   client.deleteData("seriesName", new Date(0), new Date())
+
+This will delete all data in the given series, vary the start and end date values to delete subsets.
+NOTE: I currently get a 405 Method Not Supported Error when I test this. Documentation states it is supported but it may not be in 0.4.
+
 ###Typed querying (in the experimental module - requires a scala 2.11.0 milestone build!)
 
 Using the same data as above, the API can also deliver the data point results as instances of case classes defined by you! 
