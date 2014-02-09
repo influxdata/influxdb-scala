@@ -79,10 +79,27 @@ Multiple data points (indeed an entire series) can be inserted as follows:
 
 ### Deleting Data
 
-   client.deleteData("seriesName", new Date(0), new Date())
+    client.deleteData("seriesName", new Date(0), new Date())
 
-This will delete all data in the given series, vary the start and end date values to delete subsets.
+This will delete all data in the given series, vary the start and end date values to delete smaller ranges. You can also call this with
+BigInt parameters instead of dates.
+
 NOTE: I currently get a 405 Method Not Supported Error when I test this. Documentation states it is supported but it may not be in 0.4.
+
+### Dropping an entire series
+
+    client.dropSeries("testing")
+
+This will drop the series named testing.
+
+### Admin
+
+     client.listDatabases onComplete {
+        case Success(databases) => databases foreach (db => println(s"Found db ${db.name} with replication factor ${db.replicationFactor}"))
+        case Failure(error) => println(s"Could not list databases: $error")
+     }
+
+Lists all the databases in the cluster. Requires cluster admin credentials.
 
 ###Typed querying (in the experimental module - requires a scala 2.11.0 milestone build!)
 

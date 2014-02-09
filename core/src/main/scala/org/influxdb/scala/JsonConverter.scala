@@ -3,13 +3,17 @@ package org.influxdb.scala
 import scala.util.Try
 import org.slf4j.LoggerFactory
 
-object JsonConverterComponent {
+abstract trait JsonConverterComponent {
+
+  val jsonConverter: JsonConverter  // abstract; implementations must provide a value
+
   trait JsonConverter {
 
     val LOG = LoggerFactory.getLogger("org.influxdb.scala.JsonConverter")
 
     def jsonToSeries(response: String, precision: Precision): Try[QueryResult]
     def seriesToJson(s:Series):String
+    def jsonToDBInfo(response:String):List[DBInfo]
 
     /**
      * combine the keys for all points into a single list of column names.
@@ -19,12 +23,5 @@ object JsonConverterComponent {
     def allColumns(points: Seq[DataPoint]): List[String] =
       points.foldLeft(Set[String]())((acc, p) => acc ++ p.keys.toSet).toList
 
-
-  }  
-}
-
-trait JsonConverterComponent {
-  import JsonConverterComponent.JsonConverter
-  val jsonConverter: JsonConverter
-  
+  }
 }

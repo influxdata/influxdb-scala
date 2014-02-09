@@ -7,15 +7,16 @@ import scala.util.Success
 
 object TestApp extends App {
 
-  val client = new Client("localhost", 8086, "frank", "frank", "testing") with StandaloneConfig
+  val client = new InfluxDB("localhost", 8086, "root", "root", "testing") with StandaloneConfig
 
-  // get the last point in all series
-  client.query("select * from testing order asc limit 10", MILLIS) onComplete {
-    case Success(result) => for {
-      series <- result
-      point <- series.data
-    } yield println(s"${series.name} has point $point with time precision ${series.time_precision}")
-    case Failure(error) => println(s"Got a query error: $error")
+  client.listDatabases onComplete {
+    case Success(databases) => databases foreach (db => println(s"Found db ${db.name} with replication factor ${db.replicationFactor}"))
+    case Failure(error) => println(s"Could not list databases: $error")
+  }
+
+  client.dropSeries("testing") onComplete {
+    case error:Throwable => println(s"Could not drop series: $error")
+    case _: Success[Unit] => println("Drop series succeeded.")
   }
 
   //
@@ -35,6 +36,15 @@ object TestApp extends App {
   client.insertData(s) onComplete {
     case _: Success[Unit] => println("Series insert succeeded!!!")
     case Failure(error) => println(s"Oops, series insert failed: $error")
+  }
+
+  // get the last point in all series
+  client.query("select * from testing order asc limit 10", MILLIS) onComplete {
+    case Success(result) => for {
+      series <- result
+      point <- series.data
+    } yield println(s"${series.name} has point $point with time precision ${series.time_precision}")
+    case Failure(error) => println(s"Got a query error: $error")
   }
 
   client.deleteData("testing", new Date(0), new Date()) .onFailure {

@@ -4,7 +4,6 @@ import scala.concurrent.Future
 import java.util.concurrent.{Executors, ExecutorService}
 import com.ning.http.client.{Response, ListenableFuture, AsyncHttpClient}
 import scala.concurrent.Promise
-import org.influxdb.scala.HTTPServiceComponent.HTTPService
 import scala.concurrent.duration.Duration
 
 /**

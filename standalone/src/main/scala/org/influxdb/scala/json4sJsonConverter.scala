@@ -1,6 +1,5 @@
 package org.influxdb.scala
 
-import org.influxdb.scala.JsonConverterComponent.JsonConverter
 import scala.util.Try
 import scala.annotation.tailrec
 import org.json4s.native.JsonParser
@@ -21,6 +20,15 @@ trait Json4sJsonConverterComponent extends JsonConverterComponent {
   class Json4sJsonConverter extends JsonConverter {
    
   implicit lazy val formats = DefaultFormats
+
+  def jsonToDBInfo(response:String):List[DBInfo] = {
+    val json = JsonParser.parse(response)
+    for {
+      JObject(db) <- json
+      JField("name",JString(name)) <- db
+      JField("replicationFactor",JInt(factor)) <- db
+    }  yield DBInfo(name, factor.toInt)
+  }
 
   // convert a json response to an instance of QueryResult. May fail, hence the Try
   def jsonToSeries(response: String, precision: Precision): Try[QueryResult] = {

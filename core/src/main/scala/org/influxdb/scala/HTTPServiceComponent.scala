@@ -2,7 +2,12 @@ package org.influxdb.scala
 
 import scala.concurrent.Future
 
-object HTTPServiceComponent {
+// Cake pattern, see http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
+abstract trait HTTPServiceComponent {
+
+  val jsonContentType: String = "application/json"
+
+  val httpService: HTTPService // abstract; implementations must provide a value
 
   trait HTTPService {
 
@@ -11,12 +16,4 @@ object HTTPServiceComponent {
     def PUT(url: String, body: String, contentType: String): Future[Unit]
     def DELETE(url: String): Future[Unit]
   }
-}
-
-// Cake pattern, see http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
-trait HTTPServiceComponent {
-  import org.influxdb.scala.HTTPServiceComponent.HTTPService
-
-  val httpService: HTTPService
-
 }
