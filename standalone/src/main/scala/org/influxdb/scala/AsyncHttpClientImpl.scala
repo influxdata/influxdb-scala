@@ -38,7 +38,9 @@ trait AsyncHttpClientComponent extends  HTTPServiceComponent {
         def run = {
           val response = f.get
           if (response.getStatusCode() < 400) {
-            p.success(transformResponse(response.getResponseBody))
+            val body = response.getResponseBody
+            LOG.debug(s"${response.getUri} =>\n$body")
+            p.success(transformResponse(body))
           } else {
             p.failure(new RuntimeException(s"Error response: ${response.getStatusCode()}: ${response.getResponseBody()}"))
           }

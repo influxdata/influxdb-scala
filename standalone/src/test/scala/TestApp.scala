@@ -15,8 +15,8 @@ object TestApp extends App {
   }
 
   client.dropSeries("testing") onComplete {
-    case error:Throwable => println(s"Could not drop series: $error")
-    case _: Success[Unit] => println("Drop series succeeded.")
+    case Failure(error) => println(s"Could not drop series: $error")
+    case _ => println("Drop series succeeded.")
   }
 
   //
@@ -25,8 +25,8 @@ object TestApp extends App {
 
   // single point insertion
   client.insertData("testing", Map("time" -> new Date(), "foo" -> 100, "bar" -> 200), MICROS).onComplete {
-    case _: Success[Unit] => println("Single-point insert succeeded!!!")
     case Failure(error) => println(s"Oops, point insert failed: $error")
+    case _ => println("Single-point insert succeeded!!!")
   }
 
   // multi-point, single series
@@ -34,8 +34,8 @@ object TestApp extends App {
   val p2 = Map("bar" -> 100, "baz" -> 300)
   val s = Series("testing", MILLIS, List(p1, p2))
   client.insertData(s) onComplete {
-    case _: Success[Unit] => println("Series insert succeeded!!!")
     case Failure(error) => println(s"Oops, series insert failed: $error")
+    case _ => println("Series insert succeeded!!!")
   }
 
   // get the last point in all series

@@ -11,7 +11,7 @@ import scala.util.matching.Regex
 
 class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: String) extends InfluxDBUntypedAPI {
   // require a HTTPServiceComponent and a JsonConverterComponent
-  this: HTTPServiceComponent with JsonConverterComponent =>
+  self: HTTPServiceComponent with JsonConverterComponent =>
 
   val baseUrl = s"http://$hostName:$port/db"
   val dbUrl = s"$baseUrl/${db.urlEncoded}"
@@ -26,7 +26,9 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
    */
   def listDatabases: Future[List[DBInfo]] = {
     val p = Promise[List[DBInfo]]
-    httpService.GET(s"$baseUrl?u=${user.urlEncoded}&p=${pwd.urlEncoded}") onComplete {
+    val url = s"$baseUrl?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
+    LOG.debug(s"Getting databases from $url")
+    httpService.GET(url) onComplete {
       case Success(response) => p.success(jsonConverter.jsonToDBInfo(response))
       case Failure(error) => p.failure(error)
     }
@@ -76,7 +78,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
 
   def deleteData(seriesName:String, start: BigInt, end: BigInt): Future[Unit] = {
     val url = s"$seriesUrl&name=$seriesName&start=$start&end=$end"
-    LOG.info(s"DELETE $url")
+    LOG.debug(s"DELETE $url")
     httpService.DELETE(url)
   }
 
