@@ -16,7 +16,7 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
 
   val db = new InfluxDB("localhost", 8086, "root", "root", "testing") with MockHttpService with Json4sJsonConverterComponent
 
-  it should "return a list of databases" in {
+  "db.listDatabases" should "return a list of databases" in {
     val dbsF = db.listDatabases
     val dbs = Await.result(dbsF, 1 second) // DO NOT do this in real code, keep it non-blocking
     dbs.length should be (2)
@@ -26,7 +26,7 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
     dbs(1).replicationFactor should be (2)
   }
 
-  it should "return a query result" in {
+  "db.query" should "return a query result" in {
     val qF = db.query("select * from testing", MILLIS)
     val result = Await.result(qF, 1 second) // DO NOT do this in real code, keep it non-blocking
     val t0 = new Date(100)

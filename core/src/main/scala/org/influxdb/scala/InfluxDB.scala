@@ -72,22 +72,6 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
     httpService.POST(url, json, "application/json")
   }
 
-  def deleteData(seriesName:String, start: Date, end: Date): Future[Unit] = {
-    deleteData(seriesName, SECONDS.toBigInt(start),SECONDS.toBigInt(end))
-  }
-
-  def deleteData(seriesName:String, start: BigInt, end: BigInt): Future[Unit] = {
-    val url = s"$seriesUrl&name=$seriesName&start=$start&end=$end"
-    LOG.debug(s"DELETE $url")
-    httpService.DELETE(url)
-  }
-
-  def deleteData(regex:Regex, start: BigInt, end: BigInt): Future[Unit] = {
-    val url = s"$seriesUrl&regex=${regex.toString}&start=$start&end=$end"
-    LOG.debug(s"DELETE $url")
-    httpService.DELETE(url)
-  }
-
   def dropSeries(name:String): Future[Unit] = {
     val url = urlForSeries(name)
     LOG.debug(s"Dropping series using url $url")
