@@ -77,20 +77,11 @@ Multiple data points (indeed an entire series) can be inserted as follows:
     }   
 
 
-### Deleting Data
-
-    client.deleteData("seriesName", new Date(0), new Date())
-
-This will delete all data in the given series, vary the start and end date values to delete smaller ranges. You can also call this with
-BigInt parameters instead of dates.
-
-NOTE: I currently get a 405 Method Not Supported Error when I test this. Documentation states it is supported but it may not be in 0.4.
-
 ### Dropping an entire series
 
     client.dropSeries("testing")
 
-This will drop the series named testing.
+This will drop the series named testing and thus delete all data contained in it.
 
 ### Admin
 
