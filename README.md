@@ -92,6 +92,21 @@ This will drop the series named testing and thus delete all data contained in it
 
 Lists all the databases in the cluster. Requires cluster admin credentials.
 
+### Continuous Queries
+
+* get a list of all continuous queries as a List of ContinuousQuery objects
+
+    client.listContinuousQueries
+
+* schedule a new continuous query
+
+    client.addContinuousQuery("select * from testing group by time("15m") into testing.15m")
+
+* delete a continuous query can be done by id or by the ContinuousQueryObject, the following example will delete all of them:
+
+    client.listContinuousQueries foreach { cq => client.deleteContinuousQuery(cq) }
+
+
 ###Typed querying (in the experimental module - requires a scala 2.11.0 milestone build!)
 
 Using the same data as above, the API can also deliver the data point results as instances of case classes defined by you! 

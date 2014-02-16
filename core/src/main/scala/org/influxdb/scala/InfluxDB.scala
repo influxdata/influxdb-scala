@@ -11,7 +11,7 @@ import scala.util.matching.Regex
 
 class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: String)
       extends InfluxDBUntypedDataAPI with InfluxDBAdminAPI with InfluxDBContinuousQueriesAPI {
-  
+
   // require a HTTPServiceComponent and a JsonConverterComponent
   self: HTTPServiceComponent with JsonConverterComponent =>
 
