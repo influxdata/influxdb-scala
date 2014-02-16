@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory
 // Cake pattern, see http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/
 abstract trait HTTPServiceComponent {
 
-  val jsonContentType: String = "application/json"
+  val JSONContentType: String = "application/json"
 
   val httpService: HTTPService // abstract; implementations must provide a value
 

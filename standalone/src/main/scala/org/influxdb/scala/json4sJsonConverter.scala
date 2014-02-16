@@ -30,6 +30,20 @@ trait Json4sJsonConverterComponent extends JsonConverterComponent {
     }  yield DBInfo(name, factor.toInt)
   }
 
+  def jsonToListOfContinuousQueries(response:String):List[ContinuousQuery] = {
+    val json = JsonParser.parse(response)
+    for {
+      JObject(record) <- json
+      JField("points",JArray(points)) <- record
+      JObject(point) <- points
+      JField("values", JArray(values)) <- point
+      JObject(idObject) <- values(0)
+      JObject(queryObject) <- values(1)
+      JField("int64_value",JInt(id)) <- idObject
+      JField("string_value",JString(query)) <- queryObject
+    }  yield ContinuousQuery(id.toInt, query)
+  }
+
   // convert a json response to an instance of QueryResult. May fail, hence the Try
   def jsonToSeries(response: String, precision: Precision): Try[QueryResult] = {
       LOG.debug(s"received: $response")
@@ -94,7 +108,7 @@ trait Json4sJsonConverterComponent extends JsonConverterComponent {
      * TODO this may benefit from scalavro's union types to make this more typed
      * @param point the data point
      * @param c column name
-     * @precision time precision for values of type Date
+     * @param precision time precision for values of type Date
      */
     private def pointValue(point: DataPoint, c: String, precision: Precision):JValue = {
       def jValueOf(x:Any):JValue = x match {

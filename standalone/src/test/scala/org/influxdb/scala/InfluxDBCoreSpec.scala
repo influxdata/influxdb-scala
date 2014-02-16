@@ -43,6 +43,15 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
     series.data(2)("baz") should be (Some(300))
   }
 
+  "db.listContinuousQueries" should "return 1 query" in {
+    val f = db.listContinuousQueries
+    val result = Await.result(f, 1 second)
+    result.length should be (1)
+    result(0).id should be (1)
+    result(0).query should be ("select * from testing group by time(1h) into testing.1h")
+
+  }
+
   //
   // Now we're seeing the real power of the Cake pattern !
   //
@@ -52,6 +61,7 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
     override val httpService = mock(classOf[HTTPService])
     private val dblist = "http://localhost:8086/db?u=root&p=root"
     private val query = "http://localhost:8086/db/testing/series?u=root&p=root&time_precision=m&q=select+*+from+testing"
+    private val continuousQueries = "http://localhost:8086/db/testing/continuous_queries"
 
     when(httpService.GET(dblist)).thenReturn(Future[String](
       """
@@ -73,6 +83,34 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
               [300,3,100,300,null]
             ]
           }
+        ]
+      """
+    ))
+    when(httpService.GET(continuousQueries)).thenReturn(Future[String] (
+      // I'm sorry, but this is some hideous json...
+      """
+        [
+            {
+                "points": [
+                    {
+                        "values": [
+                            {
+                                "int64_value": 1
+                            },
+                            {
+                                "string_value": "select * from testing group by time(1h) into testing.1h"
+                            }
+                        ],
+                        "timestamp": 1392575228,
+                        "sequence_number": 1
+                    }
+                ],
+                "name": "continuous queries",
+                "fields": [
+                    "id",
+                    "query"
+                ]
+            }
         ]
       """
     ))

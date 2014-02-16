@@ -14,6 +14,7 @@ abstract trait JsonConverterComponent {
     def jsonToSeries(response: String, precision: Precision): Try[QueryResult]
     def seriesToJson(s:Series):String
     def jsonToDBInfo(response:String):List[DBInfo]
+    def jsonToListOfContinuousQueries(response:String):List[ContinuousQuery]
 
     /**
      * combine the keys for all points into a single list of column names.

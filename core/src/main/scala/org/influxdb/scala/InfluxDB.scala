@@ -9,7 +9,9 @@ import scala.util.Failure
 import java.util.Date
 import scala.util.matching.Regex
 
-class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: String) extends InfluxDBUntypedAPI {
+class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: String)
+      extends InfluxDBUntypedDataAPI with InfluxDBAdminAPI with InfluxDBContinuousQueriesAPI {
+  
   // require a HTTPServiceComponent and a JsonConverterComponent
   self: HTTPServiceComponent with JsonConverterComponent =>
 
@@ -33,6 +35,30 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
       case Failure(error) => p.failure(error)
     }
     p.future
+  }
+
+  def listContinuousQueries: Future[List[ContinuousQuery]] = {
+    val p = Promise[List[ContinuousQuery]]
+    val url = s"$dbUrl/continuous_queries"
+    LOG.debug(s"Getting list of continuous queries from $url")
+    httpService.GET(url) onComplete {
+      case Success(response) => p.success(jsonConverter.jsonToListOfContinuousQueries(response))
+      case Failure(error) => p.failure(error)
+    }
+    p.future
+  }
+
+  def createContinuousQuery(query:String): Future[Unit]  ={
+    val url = s"$dbUrl/continuous_queries"
+    LOG.debug(s"Posting continuous query $query to $url")
+    httpService.POST(url, s"""{"query": "$query"}""", JSONContentType)
+  }
+
+  def deleteContinuousQuery(cq: ContinuousQuery) = deleteContinuousQuery(cq.id)
+  def deleteContinuousQuery(id:Int):Future[Unit] = {
+    val url = s"$dbUrl/continuous_queries/$id"
+    LOG.debug(s"Deleting continuous query $url")
+    httpService.DELETE(url)
   }
 
   /**
@@ -69,9 +95,13 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
     val json = jsonConverter.seriesToJson(series)
     val url = s"$seriesUrl&time_precision=${series.time_precision.qs}"
     LOG.debug(s"submitting $json to $seriesUrl")
-    httpService.POST(url, json, "application/json")
+    httpService.POST(url, json, JSONContentType)
   }
 
+  /**
+   * Drops the entire series from the current database
+   * @param name name of the series to drop
+   */
   def dropSeries(name:String): Future[Unit] = {
     val url = urlForSeries(name)
     LOG.debug(s"Dropping series using url $url")
@@ -89,7 +119,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
         }
       """.stripMargin
     LOG.debug (s"Scheduling delete $json at $url")
-    httpService.POST(url, json, jsonContentType)
+    httpService.POST(url, json, JSONContentType)
   }
 
   def scheduledDeletes: Future[List[String]] = {
