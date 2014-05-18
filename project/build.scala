@@ -9,7 +9,7 @@ object InfluxBuild extends Build {
       scalaVersion := "2.10.3",
       crossScalaVersions := Seq("2.10.3","2.11.0-M7"),
       libraryDependencies ++= Seq(
-        "org.slf4j" % "slf4j-simple" % "1.6.4"
+        "org.slf4j" % "slf4j-api" % "1.7.7"
 
       )
   )
