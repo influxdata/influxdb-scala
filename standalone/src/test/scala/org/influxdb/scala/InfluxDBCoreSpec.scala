@@ -49,7 +49,19 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
     result.length should be (1)
     result(0).id should be (1)
     result(0).query should be ("select * from testing group by time(1h) into testing.1h")
+  }
 
+  "db.listShards" should "return all shards" in {
+    val f = db.listShards
+    val result = Await.result(f, 1 second)
+    result.length should be (5)
+    result.sortBy(_.id) should equal (List(
+      Shard(1, true, List(1), new Date(1400648400000L), new Date(1400652000000L)),
+      Shard(2, true, List(1), new Date(1400652000000L), new Date(1400655600000L)),
+      Shard(3, true, List(1), new Date(1400655600000L), new Date(1400659200000L)),
+      Shard(4, false, List(1,2), new Date(1400486400000L), new Date(1400572800000L)),
+      Shard(5, false, List(1), new Date(1400572800000L), new Date(1400659200000L))
+    ))
   }
 
   //
@@ -62,6 +74,7 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
     private val dblist = "http://localhost:8086/db?u=root&p=root"
     private val query = "http://localhost:8086/db/testing/series?u=root&p=root&time_precision=m&q=select+*+from+testing"
     private val continuousQueries = "http://localhost:8086/db/testing/continuous_queries"
+    private val shards = "http://localhost:8086/cluster/shards?u=root&p=root"
 
     when(httpService.GET(dblist)).thenReturn(Future[String](
       """
@@ -112,6 +125,21 @@ class InfluxDBCoreSpec extends FlatSpec with Matchers {
                 ]
             }
         ]
+      """
+    ))
+    when(httpService.GET(shards)).thenReturn(Future[String] (
+      """
+        {
+          "longTerm": [
+            {"endTime":1400659200,"id":5,"serverIds":[1],"startTime":1400572800},
+            {"endTime":1400572800,"id":4,"serverIds":[1,2],"startTime":1400486400},
+          ],
+          "shortTerm": [
+            {"endTime":1400659200,"id":3,"serverIds":[1],"startTime":1400655600},
+            {"endTime":1400655600,"id":2,"serverIds":[1],"startTime":1400652000},
+            {"endTime":1400652000,"id":1,"serverIds":[1],"startTime":1400648400}
+          ]
+        }
       """
     ))
   }

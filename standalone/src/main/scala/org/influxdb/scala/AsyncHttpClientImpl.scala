@@ -59,6 +59,7 @@ trait AsyncHttpClientComponent extends  HTTPServiceComponent {
     def POST(url: String, body: String, contentType: String): Future[Unit] = postOrPut(client.preparePost(url),body,contentType)
     def PUT(url: String, body: String, contentType: String):  Future[Unit] = postOrPut(client.preparePut(url),body,contentType)
     def DELETE(url:String):Future[Unit]  = getOrDelete[Unit](client.prepareDelete(url)) { result => }
+    def DELETE(url:String, body: String, contentType: String): Future[Unit] = postOrPut(client.prepareDelete(url),body,contentType)
 
   }
 }

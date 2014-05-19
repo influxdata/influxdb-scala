@@ -44,6 +44,22 @@ trait Json4sJsonConverterComponent extends JsonConverterComponent {
     }  yield ContinuousQuery(id.toInt, query)
   }
 
+  def jsonToListOfShards(response: String): List[Shard] = {
+    val json = JsonParser.parse(response)
+
+    def extractShard(jsValue: JValue, shortTerm: Boolean) =
+      Shard(
+        id = (jsValue \ "id").extract[Int],
+        serverIds = (jsValue \ "serverIds").extract[List[Int]],
+        startTime = new Date((jsValue \ "startTime").extract[Long] * 1000),  // time is in seconds since Epoch, convert it to millis
+        endTime = new Date((jsValue \ "endTime").extract[Long] * 1000),
+        shortTerm = shortTerm
+      )
+
+    (json \ "longTerm").children.map(value => extractShard(value, shortTerm = false)) ++
+    (json \ "shortTerm").children.map(value => extractShard(value, shortTerm = true))
+  }
+
   // convert a json response to an instance of QueryResult. May fail, hence the Try
   def jsonToSeries(response: String, precision: Precision): Try[QueryResult] = {
       LOG.debug(s"received: $response")
@@ -99,6 +115,12 @@ trait Json4sJsonConverterComponent extends JsonConverterComponent {
         "columns" -> JArray(columns.map(c => JString(c))),
         "points" -> JArray(points))
       swrite(List(series))    
+    }
+
+    def serverIdsToJson(ids: List[Int]): String = {
+      swrite(JObject(
+        "serverIds" -> JArray(ids.map(id => JInt(id)))
+      ))
     }
     
    /**
