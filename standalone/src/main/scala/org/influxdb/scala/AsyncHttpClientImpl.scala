@@ -36,13 +36,17 @@ trait AsyncHttpClientComponent extends  HTTPServiceComponent {
     private def setupListener[T](f:ListenableFuture[Response],p:Promise[T])(transformResponse: String => T) {
       f.addListener(new Runnable() {
         def run = {
-          val response = f.get
-          if (response.getStatusCode() < 400) {
-            val body = response.getResponseBody
-            LOG.debug(s"${response.getUri} =>\n$body")
-            p.success(transformResponse(body))
-          } else {
-            p.failure(new RuntimeException(s"Error response: ${response.getStatusCode()}: ${response.getResponseBody()}"))
+          try {
+            val response = f.get
+            if (response.getStatusCode() < 400) {
+              val body = response.getResponseBody
+              LOG.debug(s"${response.getUri} =>\n$body")
+              p.success(transformResponse(body))
+            } else {
+              p.failure(new RuntimeException(s"Error response: ${response.getStatusCode()}: ${response.getResponseBody()}"))
+            }
+          } catch {
+            case e => p.failure(e)
           }
         }
       }, pool)
