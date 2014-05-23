@@ -15,6 +15,7 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
   // require a HTTPServiceComponent and a JsonConverterComponent
   self: HTTPServiceComponent with JsonConverterComponent =>
 
+  val clusterUrl = s"http://$hostName:$port/cluster"
   val baseUrl = s"http://$hostName:$port/db"
   val dbUrl = s"$baseUrl/${db.urlEncoded}"
   val seriesUrl = s"$dbUrl/series?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
@@ -131,4 +132,32 @@ class InfluxDB(hostName: String, port: Int, user: String, pwd: String, db: Strin
     }
     p.future
   }
+
+  /**
+   * This currently requires the cluster admin credentials
+   * @return
+   */
+  def listShards(): Future[List[Shard]] = {
+    val url = s"$clusterUrl/shards?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
+    val p = Promise[List[Shard]]
+    LOG.debug(s"Getting shards from $url")
+    httpService.GET(url) onComplete {
+      case Failure(error) => p.failure(error)
+      case Success(response) => p.success(jsonConverter.jsonToListOfShards(response))
+    }
+    p.future
+  }
+
+  /**
+   * This currently requires the cluster admin credentials
+   * @return
+   */
+  def deleteShard(shard: Shard): Future[Unit] = deleteShard(shard, shard.serverIds)
+  def deleteShard(shard: Shard, serverIds: List[Int]): Future[Unit] = {
+    val url = s"$clusterUrl/shards/${shard.id}?u=${user.urlEncoded}&p=${pwd.urlEncoded}"
+    LOG.debug(s"Deleting shard $url")
+    val body = jsonConverter.serverIdsToJson(serverIds)
+    httpService.DELETE(url, body, JSONContentType)
+  }
+
 }

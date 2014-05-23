@@ -18,5 +18,6 @@ abstract trait HTTPServiceComponent {
     def POST(url: String, body: String, contentType: String): Future[Unit]
     def PUT(url: String, body: String, contentType: String): Future[Unit]
     def DELETE(url: String): Future[Unit]
+    def DELETE(url: String, body: String, contentType: String): Future[Unit]
   }
 }
