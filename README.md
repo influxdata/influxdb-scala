@@ -1,5 +1,6 @@
 influxdb-scala
 ==============
+# Latest Scala client can be found here: https://github.com/influxdata/influxdb-client-java/tree/master/client-scala
 
 
 # This library is not updated for InfluxDB 0.9. There are breaking changes to the API, use at your own risk.
@@ -9,3 +10,5 @@ We encourage you to submit a pull request if you have a contribution. If you mak
 ---------
 
 Scala client for InfluxDB heavily inspired by [influxdb-go](https://github.com/influxdb/influxdb-go).
+
+
